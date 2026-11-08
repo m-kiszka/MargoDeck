@@ -1,0 +1,96 @@
+{
+  "url": "https://www.margonem.pl",
+  "zoom": 1.0,
+  "stickDeadzone": 0.35,
+  "cursorSpeed": 14,
+  "cursorAccel": 2.2,
+  "leftStick": {
+    "up": "w",
+    "down": "s",
+    "left": "a",
+    "right": "d"
+  },
+  "dpad": {
+    "up": "i",
+    "down": "h",
+    "left": "u",
+    "right": "c"
+  },
+  "buttons": {
+    "A": {
+      "type": "click"
+    },
+    "B": {
+      "type": "key",
+      "key": "Escape"
+    },
+    "X": {
+      "type": "key",
+      "key": "f"
+    },
+    "Y": {
+      "type": "key",
+      "key": "r"
+    },
+    "LB": {
+      "type": "key",
+      "key": "Tab"
+    },
+    "RB": {
+      "type": "key",
+      "key": "z"
+    },
+    "LT": {
+      "type": "rightclick"
+    },
+    "RT": {
+      "type": "key",
+      "key": "q"
+    },
+    "Start": {
+      "type": "key",
+      "key": "t"
+    },
+    "Back": {
+      "type": "key",
+      "key": "m"
+    },
+    "LS": {
+      "type": "key",
+      "key": "e"
+    },
+    "RS": {
+      "type": "centerCursor"
+    }
+  },
+  "chords": {
+    "B": {
+      "type": "closePopup"
+    },
+    "X": {
+      "type": "key",
+      "key": "x"
+    },
+    "LB": {
+      "type": "zoomOut"
+    },
+    "RB": {
+      "type": "zoomIn"
+    },
+    "LT": {
+      "type": "key",
+      "key": "g"
+    },
+    "RT": {
+      "type": "key",
+      "key": "v"
+    },
+    "LS": {
+      "type": "zoomReset"
+    },
+    "RS": {
+      "type": "key",
+      "key": "b"
+    }
+  }
+}
