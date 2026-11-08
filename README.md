@@ -63,7 +63,7 @@ npm start -- --windowed
 npm run dist:linux
 ```
 
-This produces `dist/MargoDeck-0.1.0.AppImage` (plus a `.tar.gz`).
+This produces `dist/MargoDeck-1.0.0.AppImage` (plus a `.tar.gz`).
 If electron-builder will not build the AppImage on Windows, run the same command in WSL, or on the Deck itself in Konsole (with Node installed).
 
 ## Install on the Steam Deck

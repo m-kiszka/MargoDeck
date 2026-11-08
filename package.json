@@ -2,7 +2,7 @@
   "name": "margodeck",
   "productName": "MargoDeck",
   "desktopName": "MargoDeck.desktop",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Desktop wrapper for the margonem.pl web game that adds gamepad and Steam Deck controls",
   "main": "src/main.js",
   "author": "mkiszka",
