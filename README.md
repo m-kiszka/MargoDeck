@@ -64,7 +64,17 @@ npm run dist:linux
 ```
 
 This produces `dist/MargoDeck-1.0.0.AppImage` (plus a `.tar.gz`).
-If electron-builder will not build the AppImage on Windows, run the same command in WSL, or on the Deck itself in Konsole (with Node installed).
+The AppImage cannot be built on Windows itself (electron-builder has no Windows `mksquashfs`). Run the same command in WSL, or on the Deck itself in Konsole (with Node installed).
+
+## Build for Windows
+
+```
+npm run dist:win
+```
+
+This produces two files in `dist/`:
+- `MargoDeck-1.0.0-setup.exe`, an installer with Start menu and desktop shortcuts and an uninstaller,
+- `MargoDeck-1.0.0-portable.exe`, a single file that runs without installation (it unpacks itself on every start, so it opens a few seconds slower).
 
 ## Install on the Steam Deck
 
@@ -73,6 +83,16 @@ If electron-builder will not build the AppImage on Windows, run the same command
 3. In Steam, open MargoDeck **Properties → Controller** and pick the **"Gamepad"** template.
    Without it, Steam may send its own keyboard/mouse emulation instead of the gamepad.
 4. Go back to Gaming Mode and launch MargoDeck. Hold View to see the controls.
+
+## Windows
+
+MargoDeck also runs on Windows 10 and 11 with any controller that works in the browser (Xbox, PlayStation, generic XInput pads).
+Download `MargoDeck-<version>-setup.exe` to install it, or `MargoDeck-<version>-portable.exe` to run it without installing.
+
+The executables are not code-signed, so Windows SmartScreen may show "Windows protected your PC" on the first start.
+Click **More info** → **Run anyway**.
+
+Settings and the button mapping are stored in `%APPDATA%\MargoDeck`.
 
 ## Login popups (Google, Facebook, Apple)
 
