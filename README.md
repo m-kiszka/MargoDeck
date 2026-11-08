@@ -4,6 +4,8 @@ MargoDeck is a wrapper around the [Margonem](https://www.margonem.pl) web game.
 It opens the official website in its own window and translates gamepad input into keyboard and mouse events, so the game can be played with a controller or on the Steam Deck.
 It does not change the game itself.
 
+Coded with AI assistance.
+
 What the wrapper adds:
 - fullscreen window sized for the Steam Deck (1280×800) and a saved login session,
 - built-in gamepad mapping (Gamepad API) with an in-app settings menu,

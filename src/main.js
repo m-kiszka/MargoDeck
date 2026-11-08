@@ -92,6 +92,7 @@ function createWindow() {
     autoHideMenuBar: true,
     backgroundColor: '#000000',
     title: 'MargoDeck',
+    icon: path.join(__dirname, '..', 'assets', 'icon.png'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       partition: 'persist:margonem',

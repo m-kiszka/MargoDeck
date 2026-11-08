@@ -1,6 +1,7 @@
 {
   "name": "margodeck",
   "productName": "MargoDeck",
+  "desktopName": "MargoDeck.desktop",
   "version": "0.1.0",
   "description": "Desktop wrapper for the margonem.pl web game that adds gamepad and Steam Deck controls",
   "main": "src/main.js",
@@ -17,11 +18,20 @@
   },
   "build": {
     "appId": "pl.margodeck.app",
-    "files": ["src/**/*", "config/**/*"],
+    "files": [
+      "src/**/*",
+      "config/**/*",
+      "assets/**/*"
+    ],
     "linux": {
       "category": "Game",
-      "target": ["AppImage", "tar.gz"],
-      "artifactName": "MargoDeck-${version}.${ext}"
+      "target": [
+        "AppImage",
+        "tar.gz"
+      ],
+      "artifactName": "MargoDeck-${version}.${ext}",
+      "syncDesktopName": true,
+      "icon": "assets/icon.png"
     }
   }
 }
