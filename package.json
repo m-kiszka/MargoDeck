@@ -10,7 +10,7 @@
   "scripts": {
     "start": "electron .",
     "dist:linux": "electron-builder --linux AppImage tar.gz --x64",
-    "dist:win": "electron-builder --win dir"
+    "dist:win": "electron-builder --win portable nsis --x64"
   },
   "devDependencies": {
     "electron": "45.2.3",
@@ -32,6 +32,22 @@
       "artifactName": "MargoDeck-${version}.${ext}",
       "syncDesktopName": true,
       "icon": "assets/icon.png"
+    },
+    "win": {
+      "target": [
+        "portable",
+        "nsis"
+      ],
+      "icon": "assets/icon.png"
+    },
+    "portable": {
+      "artifactName": "MargoDeck-${version}-portable.exe"
+    },
+    "nsis": {
+      "artifactName": "MargoDeck-${version}-setup.exe",
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "shortcutName": "MargoDeck"
     }
   }
 }
