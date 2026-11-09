@@ -187,6 +187,23 @@ ipcMain.on('md:action', (e, action) => {
 
 ipcMain.handle('md:mapping', () => mapping);
 
+const LOCALES_DIR = path.join(__dirname, '..', 'locales');
+
+function loadLocales() {
+  const out = {};
+  for (const file of fs.readdirSync(LOCALES_DIR)) {
+    if (!file.endsWith('.json')) continue;
+    try {
+      out[path.basename(file, '.json')] = JSON.parse(fs.readFileSync(path.join(LOCALES_DIR, file), 'utf8'));
+    } catch (err) {
+      console.error(`Invalid locale ${file}:`, err.message);
+    }
+  }
+  return out;
+}
+
+ipcMain.handle('md:locales', () => loadLocales());
+
 function saveMapping(m) {
   mapping = m;
   fs.writeFileSync(path.join(app.getPath('userData'), 'mapping.json'), JSON.stringify(m, null, 2));

@@ -21,7 +21,8 @@
     "files": [
       "src/**/*",
       "config/**/*",
-      "assets/**/*"
+      "assets/**/*",
+      "locales/**/*"
     ],
     "linux": {
       "category": "Game",

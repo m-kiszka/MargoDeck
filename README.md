@@ -50,6 +50,12 @@ You can also edit `~/.config/MargoDeck/mapping.json` on the Deck (`%APPDATA%\Mar
 The file is created on first launch. It also sets `zoom`, the cursor speed, the stick deadzone and `nudgeTiles` (how far R1 + D-pad / right stick moves the cursor).
 **F11** toggles fullscreen and **F5** reloads the page.
 
+## Translations
+
+All texts shown in the app live in `locales/`, one JSON file per language (`pl.json`, `en.json`).
+Keys are the English texts, values are the translations, and `_name` is the language name shown in the settings menu.
+To add a language, copy `en.json` to a new file (for example `de.json`) and translate the values. It appears in the language switch automatically.
+
 ## Development
 
 Requires Node.js 20 or newer.
