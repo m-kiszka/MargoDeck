@@ -6,85 +6,16 @@ const CHORD_MOD = 'LB';
 const BUTTON_NAMES = ['A', 'B', 'X', 'Y', 'LB', 'RB', 'LT', 'RT', 'Back', 'Start', 'LS', 'RS', 'DUp', 'DDown', 'DLeft', 'DRight', 'Guide'];
 
 let mapping = null;
-const LANGUAGES = { pl: 'Polski', en: 'English' };
-const PL = {
-  "Keyboard key…": "Klawisz klawiatury…",
-  "Left click": "Lewy klik",
-  "Right click": "Prawy klik",
-  "Steam on-screen keyboard": "Klawiatura ekranowa Steam",
-  "Close popup window": "Zamknij wyskakujące okno",
-  "Center cursor on character": "Wyśrodkuj kursor na postaci",
-  "Hold + D-pad / right stick: cursor next to character": "Przytrzymaj + krzyżak / prawa gałka: kursor obok postaci",
-  "Jump to next field / button": "Przejdź do następnego pola / przycisku",
-  "Jump to previous field / button": "Przejdź do poprzedniego pola / przycisku",
-  "Show / hide cursor": "Pokaż / ukryj kursor",
-  "Zoom in": "Przybliż",
-  "Zoom out": "Oddal",
-  "Reset zoom": "Resetuj przybliżenie",
-  "Reload page": "Odśwież stronę",
-  "Toggle fullscreen": "Przełącz pełny ekran",
-  "— Nothing —": "— Brak —",
-  "Inventory (bind I in game first)": "Pokaż/ukryj ekwipunek (najpierw ustaw I w grze)",
-  "Turn-based fight with monster": "Turowa walka z potworem",
-  "Quick fight": "Szybka walka",
-  "Attack nearest player": "Atak najbliższego Gracza",
-  "Close battle window": "Zamknięcie okna walki",
-  "Show battle log": "Wyświetlenie logu walki",
-  "Resize battle log": "Zmiana rozmiaru logu walki",
-  "Battle sets": "Zestawy do walki",
-  "Talk to nearest NPC": "Rozmowa z najbliższym NPC",
-  "Mini map": "Podręczna mapa",
-  "World map": "Mapa świata",
-  "Chat": "Czat",
-  "Group": "Grupa",
-  "Invite to group": "Zaproś do grupy",
-  "Clans": "Klany",
-  "Community": "Społeczność",
-  "Abyss": "Otchłań",
-  "Quests": "Questy",
-  "Skills": "Umiejętności",
-  "Character switch panel": "Panel zmiany Postaci",
-  "Console": "Konsola",
-  "Buttons": "Przyciski",
-  "Hold L1 +": "Przytrzymaj L1 +",
-  "D-pad": "Krzyżak",
-  "Left stick": "Lewa gałka",
-  "Right stick": "Prawa gałka",
-  "App": "Aplikacja",
-  "Other": "Inne",
-  "Current": "Obecne",
-  "Fullscreen": "Pełny ekran",
-  "On": "Wł.",
-  "Off": "Wył.",
-  "Window size": "Rozmiar okna",
-  "Language": "Język",
-  "Quit MargoDeck": "Zamknij MargoDeck",
-  "Restore default mapping": "Przywróć domyślne mapowanie",
-  "Close menu": "Zamknij menu",
-  "+ Add another key…": "+ Dodaj kolejny klawisz…",
-  "− Remove last key": "− Usuń ostatni klawisz",
-  "MargoDeck – settings": "MargoDeck – ustawienia",
-  "(current)": "(obecny)",
-  "Choosing a size leaves fullscreen": "Wybranie rozmiaru wyłącza pełny ekran",
-  "Add key to: {0}": "Dodaj klawisz do: {0}",
-  "Assign: {0}": "Przypisz: {0}",
-  "Key for: {0}": "Klawisz dla: {0}",
-  "Menu: close": "Menu: zamknij",
-  "D-pad / left stick: move · A: select · B: back · View + Menu opens this screen · Changes are saved immediately": "Krzyżak / lewa gałka: wybór · A: zatwierdź · B: wstecz · View + Menu otwiera ten ekran · Zmiany zapisują się od razu",
-  "modifier": "modyfikator",
-  "MargoDeck settings": "Ustawienia MargoDeck",
-  "Cursor": "Kursor",
-  "Button": "Przycisk",
-  "Press": "Naciśnij",
-  "Space": "Spacja"
-};
+let LOCALES = {};
 let lang = 'pl';
+const languageName = (code) => LOCALES[code]?._name || code;
 function t(text, ...args) {
-  let out = lang === 'pl' && PL[text] != null ? PL[text] : text;
+  const dict = LOCALES[lang] || {};
+  let out = dict[text] != null ? dict[text] : text;
   args.forEach((v, i) => { out = out.replace(`{${i}}`, v); });
   return out;
 }
-const setLanguage = (m) => { lang = LANGUAGES[m?.language] ? m.language : 'pl'; };
+const setLanguage = (m) => { lang = LOCALES[m?.language] ? m.language : (LOCALES.pl ? 'pl' : 'en'); };
 
 const prevButtons = new Array(BUTTON_NAMES.length).fill(false);
 const heldKeys = new Set();
@@ -430,9 +361,14 @@ function slotList() {
     { special: 'reload', label: 'Reload page', title: 'App' },
     { special: 'fullscreen', label: 'Fullscreen', value: display.fullscreen ? 'On' : 'Off', title: 'App' },
     { special: 'resolution', label: 'Window size', value: `${display.width} × ${display.height}`, title: 'App' },
-    { special: 'language', label: 'Language', value: LANGUAGES[lang], title: 'App' },
+    { special: 'language', label: 'Language', value: languageName(lang), title: 'App' },
     { special: 'quit', label: 'Quit MargoDeck', title: 'App' },
   ];
+  const hud = hudSettings();
+  items.push({ special: 'hud', part: 'enabled', label: 'Show on screen', value: hud.enabled ? 'On' : 'Off', title: 'On-screen controls' });
+  for (const part of HUD_PARTS) {
+    items.push({ special: 'hud', part: part.id, label: part.setting, value: hud[part.id] ? 'On' : 'Off', title: 'On-screen controls' });
+  }
   for (const g of SLOT_GROUPS) for (const n of g.names) items.push({ group: g.group, name: n, title: g.title });
   items.push({ special: 'reset', label: 'Restore default mapping' });
   items.push({ special: 'close', label: 'Close menu' });
@@ -599,8 +535,15 @@ function menuSelect() {
     const it = slotList()[menu.idx];
     if (it.special === 'close') return closeMenu();
     if (it.special === 'quit') { ipcRenderer.send('md:action', 'quit'); return; }
+    if (it.special === 'hud') {
+      mapping.hud = { ...hudSettings(), [it.part]: !hudSettings()[it.part] };
+      ipcRenderer.invoke('md:saveMapping', mapping);
+      hudDirty = true;
+      renderMenu();
+      return;
+    }
     if (it.special === 'language') {
-      const codes = Object.keys(LANGUAGES);
+      const codes = Object.keys(LOCALES);
       mapping.language = codes[(codes.indexOf(lang) + 1) % codes.length];
       setLanguage(mapping);
       ipcRenderer.invoke('md:saveMapping', mapping);
@@ -766,6 +709,152 @@ function renderSheet() {
 </style><table><thead><tr><th>${t('Button')}</th><th>${t('Press')}</th><th>${t('Hold L1 +')}</th></tr></thead><tbody>${rows}</tbody></table>`;
 }
 
+// On-screen controls (HUD) ----------------------------------------------
+
+const HUD_PARTS = [
+  { id: 'windows', corner: 'bl', layer: 'base', title: 'Windows', setting: 'Windows (bottom left)' },
+  { id: 'actions', corner: 'br', layer: 'base', title: 'Actions', setting: 'Actions (bottom right)' },
+  { id: 'combos', corner: 'bl', layer: 'l1', title: 'L1 +', setting: 'L1 + buttons (while holding L1, bottom left)' },
+  { id: 'dpadCombos', corner: 'br', layer: 'l1', title: 'L1 + D-pad', setting: 'L1 + D-pad (while holding L1, bottom right)' },
+];
+const HUD_DEFAULTS = { enabled: true, windows: true, actions: true, combos: true, dpadCombos: true };
+const hudSettings = () => ({ ...HUD_DEFAULTS, ...(mapping?.hud || {}) });
+
+const IS_POPUP = !!window.opener;
+let hudRoot = null;
+let hudDirty = true;
+let hudLastLayout = 0;
+let hudLastKey = '';
+
+const HOLD_ICON = '<svg class="ring" viewBox="0 0 16 16" aria-hidden="true">'
+  + '<circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-opacity=".3" stroke-width="2.2"/>'
+  + '<path d="M8 2 A6 6 0 1 1 2.8 11" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>';
+
+function hudLabel(a) {
+  if (!a) return '';
+  const name = (type) => t((ACTIONS.find((x) => x.type === type) || { label: type }).label);
+  const keyName = (k) => {
+    const g = gameActionFor(k);
+    return g ? t(g.label).replace(/\s*\(.*\)$/, '') : (KEY_LABELS[k] ? t(KEY_LABELS[k]) : k.toUpperCase());
+  };
+  let parts = [];
+  if (a.type === 'key') parts = [keyName(a.key)];
+  else if (a.type === 'keys') parts = (a.keys || []).map(keyName);
+  else parts = [name(a.type)];
+  if (Array.isArray(a.also)) parts.push(...a.also.map(name));
+  return parts.join(' / ');
+}
+
+function hudEntries(id) {
+  const out = [];
+  const add = (badge, a, hold = false) => { const l = hudLabel(a); if (l) out.push({ badge, label: l, hold }); };
+  const dpadKey = (d) => (mapping.dpad?.[d] ? { type: 'key', key: mapping.dpad[d] } : null);
+  const nudgeButton = Object.keys(mapping.buttons || {}).find((n) => mapping.buttons[n]?.type === 'nudgeModifier');
+  if (id === 'windows') {
+    add('✚↑', dpadKey('up'));
+    add('✚↓', dpadKey('down'));
+    add('✚←', dpadKey('left'));
+    add('✚→', dpadKey('right'));
+    add('L3', mapping.buttons?.LS);
+    out.push({ badge: 'View', label: t('All controls'), hold: true });
+  } else if (id === 'actions') {
+    for (const n of ['X', 'Y', 'LB', 'RS']) {
+      if (n === nudgeButton) continue;
+      add(buttonLabel(n), mapping.buttons?.[n]);
+      if (n === CHORD_MOD) out.push({ badge: buttonLabel(n), label: t('More shortcuts'), hold: true });
+    }
+    if (nudgeButton) out.push({ badge: `${buttonLabel(nudgeButton)} + ✚`, label: t('Cursor next to character'), hold: true });
+  } else if (id === 'combos') {
+    for (const n of ['A', 'B', 'X', 'Y', 'RB', 'LT', 'RT', 'LS', 'RS', 'Start']) add(buttonLabel(n), mapping.chords?.[n]);
+  } else if (id === 'dpadCombos') {
+    for (const [n, arrow] of [['DUp', '↑'], ['DDown', '↓'], ['DLeft', '←'], ['DRight', '→']]) add(`✚${arrow}`, mapping.chords?.[n]);
+  }
+  return out;
+}
+
+const HUD_CSS = `
+#md-hud{position:fixed;inset:0;pointer-events:none;z-index:2147483640;font:bold 13px/1.3 Arial,Helvetica,sans-serif;color:#f1e6c8;
+  text-shadow:-1px 0 #000,1px 0 #000,0 -1px #000,0 1px #000,0 0 5px rgba(0,0,0,.85)}
+#md-hud .box{position:fixed;display:flex;flex-direction:column;gap:4px;max-width:46%}
+#md-hud .ttl{display:flex;align-items:center;gap:6px;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:#f2c14e}
+#md-hud .row{display:flex;align-items:center;gap:7px;white-space:nowrap}
+#md-hud .r{justify-content:flex-end}
+#md-hud .b{display:inline-flex;align-items:center;gap:3px;min-width:22px;justify-content:center;padding:1px 6px;border-radius:4px;
+  background:linear-gradient(#4b3523,#2a1b10);border:1px solid #c9a25a;box-shadow:inset 0 0 0 1px rgba(0,0,0,.6),0 1px 2px rgba(0,0,0,.7);
+  font:bold 11px/1.35 Arial,Helvetica,sans-serif;color:#f6e7b8;text-shadow:0 1px 1px #000}
+#md-hud .b.hold{border-color:#f2c14e;box-shadow:inset 0 0 0 1px rgba(0,0,0,.6),0 0 6px rgba(242,193,78,.55)}
+#md-hud .ring{width:11px;height:11px;color:#f2c14e;flex:none}
+#md-hud .tip{position:fixed;transform:translateX(-50%);padding:4px 12px;border-radius:5px;display:flex;gap:6px;align-items:center;white-space:nowrap;
+  background:linear-gradient(rgba(58,40,24,.88),rgba(30,20,12,.88));border:1px solid #8a6a3a;box-shadow:0 2px 6px rgba(0,0,0,.6);font-size:12px}
+#md-hud .tip .sep{width:14px}
+#md-hud.hidden{display:none}
+`;
+
+const badgeHtml = (text, hold) => `<span class="b${hold ? ' hold' : ''}">${hold ? HOLD_ICON : ''}${esc(text)}</span>`;
+
+function hudArea() {
+  const c = document.getElementById('GAME_CANVAS');
+  const r = c && c.getBoundingClientRect();
+  if (r && r.width > 200 && r.height > 150) return r;
+  return { left: 0, top: 0, right: window.innerWidth, bottom: window.innerHeight, width: window.innerWidth, height: window.innerHeight };
+}
+
+function renderHud(l1Held) {
+  const hud = hudSettings();
+  const layer = l1Held ? 'l1' : 'base';
+  const right = (c) => c === 'br';
+  const boxes = hud.enabled ? HUD_PARTS.filter((part) => part.layer === layer && hud[part.id]).map((part) => {
+    const rows = hudEntries(part.id).map((e) => (right(part.corner)
+      ? `<div class="row r"><span>${esc(e.label)}</span>${badgeHtml(e.badge, e.hold)}</div>`
+      : `<div class="row">${badgeHtml(e.badge, e.hold)}<span>${esc(e.label)}</span></div>`)).join('');
+    if (!rows) return '';
+    const title = part.layer === 'l1'
+      ? `${badgeHtml(buttonLabel(CHORD_MOD), true)}<span>${esc(t(part.title).replace(/^L1\s*\+\s*/, '+ '))}</span>`
+      : `<span>${esc(t(part.title))}</span>`;
+    return `<div class="box" data-corner="${part.corner}"><div class="ttl${right(part.corner) ? ' r' : ''}">${title}</div>${rows}</div>`;
+  }).join('') : '';
+  const tipTop = `<div class="tip top">${badgeHtml('View')}<span>+</span>${badgeHtml('Menu')}<span>${esc(t('MargoDeck settings'))}</span></div>`;
+  const single = [['View', mapping.buttons?.Back], ['Menu', mapping.buttons?.Start]]
+    .map(([b, a]) => [b, hudLabel(a)]).filter(([, l]) => l)
+    .map(([b, l]) => `${badgeHtml(b)}<span>${esc(l)}</span>`).join('<span class="sep"></span>');
+  const tipBottom = hud.enabled && single ? `<div class="tip bottom">${single}</div>` : '';
+  hudRoot.innerHTML = `<style>${HUD_CSS}</style>${boxes}${tipTop}${tipBottom}`;
+}
+
+function layoutHud() {
+  const a = hudArea();
+  const pad = 14;
+  hudRoot.querySelectorAll('.box').forEach((el) => {
+    const c = el.dataset.corner;
+    el.style.left = c[1] === 'l' ? `${a.left + pad}px` : '';
+    el.style.right = c[1] === 'r' ? `${window.innerWidth - a.right + pad}px` : '';
+    el.style.bottom = `${window.innerHeight - a.bottom + pad}px`;
+  });
+  const top = hudRoot.querySelector('.tip.top');
+  if (top) { top.style.left = `${a.left + a.width / 2}px`; top.style.top = `${a.top + 8}px`; }
+  const bottom = hudRoot.querySelector('.tip.bottom');
+  if (bottom) { bottom.style.left = `${a.left + a.width / 2}px`; bottom.style.bottom = `${window.innerHeight - a.bottom + 40}px`; }
+}
+
+function updateHud(pad) {
+  if (IS_POPUP || !mapping || !document.documentElement) return;
+  const l1Held = !!pad?.buttons[BUTTON_NAMES.indexOf(CHORD_MOD)]?.pressed;
+  const key = JSON.stringify([mapping.buttons, mapping.chords, mapping.dpad, mapping.hud, lang, l1Held]);
+  const now = performance.now();
+  if (!hudDirty && key === hudLastKey && now - hudLastLayout < 400) return;
+  hudLastLayout = now;
+  if (!hudRoot || !document.documentElement.contains(hudRoot)) {
+    hudRoot = document.createElement('div');
+    hudRoot.id = 'md-hud';
+    document.documentElement.appendChild(hudRoot);
+    hudDirty = true;
+  }
+  if (hudDirty || key !== hudLastKey) { renderHud(l1Held); hudLastKey = key; }
+  hudDirty = false;
+  hudRoot.classList.toggle('hidden', !!menu || sheetShown);
+  layoutHud();
+}
+
 function deadzone(v) {
   const dz = mapping.stickDeadzone ?? 0.35;
   return Math.abs(v) < dz ? 0 : (v - Math.sign(v) * dz) / (1 - dz);
@@ -775,6 +864,7 @@ function tick() {
   requestAnimationFrame(tick);
   if (!mapping) return;
   const pad = [...navigator.getGamepads()].find(Boolean);
+  updateHud(pad);
   if (!pad) return;
   ensureOverlay();
 
@@ -882,9 +972,10 @@ window.addEventListener('blur', releaseAllKeys);
 
 ipcRenderer.on('md:display-updated', (_e, d) => { display = d; if (menu) renderMenu(); });
 
-ipcRenderer.on('md:mapping-updated', (_e, m) => { mapping = m; setLanguage(m); if (menu) renderMenu(); renderSheet(); });
+ipcRenderer.on('md:mapping-updated', (_e, m) => { mapping = m; setLanguage(m); hudDirty = true; if (menu) renderMenu(); renderSheet(); });
 
-ipcRenderer.invoke('md:mapping').then((m) => {
+Promise.all([ipcRenderer.invoke('md:locales'), ipcRenderer.invoke('md:mapping')]).then(([locales, m]) => {
+  LOCALES = locales || {};
   mapping = m;
   setLanguage(m);
   cursor.x = window.innerWidth / 2;

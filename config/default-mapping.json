@@ -1,6 +1,13 @@
 {
   "url": "https://www.margonem.pl",
   "language": "pl",
+  "hud": {
+    "enabled": true,
+    "windows": true,
+    "actions": true,
+    "combos": true,
+    "dpadCombos": true
+  },
   "zoom": 1.0,
   "stickDeadzone": 0.35,
   "cursorSpeed": 14,

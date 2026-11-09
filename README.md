@@ -42,6 +42,8 @@ What the wrapper adds:
 
 Hold **View** + **Menu** to open the settings menu. Its **App** section reloads the page, toggles fullscreen, sets the window size (the size is saved; picking one leaves fullscreen), switches the language (Polish by default, or English) and quits the app. In Steam Deck Gaming Mode the app always fills the screen, so the window size only matters in Desktop Mode or on a PC.
 
+The on-screen controls show the less obvious pad shortcuts in the bottom corners of the game map: windows on the left, actions on the right. While **L1** is held they switch to the L1 + combinations. Buttons that are meant to be held are marked with a ring icon. Each part can be turned on or off in the **On-screen controls** section of the settings menu. A hint about **View + Menu** is always shown at the top centre of the map, and the single **View** and **Menu** actions at the bottom centre.
+
 In the same menu you can remap the buttons. Pick a button with the D-pad, press A, choose an action or a keyboard key. Changes are saved immediately. You can also tap the entries on the touchscreen.
 A button can press up to three keys at once: pick the button, then **+ Add another key…** (or **− Remove last key**). The D-pad and the left stick stay single-key.
 Check the current game shortcuts in the Margonem settings and assign them here.
