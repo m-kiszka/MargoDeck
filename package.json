@@ -2,7 +2,7 @@
   "name": "margodeck",
   "productName": "MargoDeck",
   "desktopName": "MargoDeck.desktop",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Wrapper around the Margonem web game that adds controller and Steam Deck support",
   "main": "src/main.js",
   "author": "mkiszka",
