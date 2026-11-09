@@ -73,7 +73,7 @@ npm start -- --windowed
 npm run dist:linux
 ```
 
-This produces `dist/MargoDeck-1.0.1.AppImage` (plus a `.tar.gz`).
+This produces `dist/MargoDeck-1.0.2.AppImage` (plus a `.tar.gz`).
 The AppImage cannot be built on Windows itself (electron-builder has no Windows `mksquashfs`). Run the same command in WSL, or on the Deck itself in Konsole (with Node installed).
 
 ## Build for Windows
@@ -83,8 +83,8 @@ npm run dist:win
 ```
 
 This produces two files in `dist/`:
-- `MargoDeck-1.0.1-setup.exe`, an installer with Start menu and desktop shortcuts and an uninstaller,
-- `MargoDeck-1.0.1-portable.exe`, a single file that runs without installation (it unpacks itself on every start, so it opens a few seconds slower).
+- `MargoDeck-1.0.2-setup.exe`, an installer with Start menu and desktop shortcuts and an uninstaller,
+- `MargoDeck-1.0.2-portable.exe`, a single file that runs without installation (it unpacks itself on every start, so it opens a few seconds slower).
 
 ## Install on the Steam Deck
 
