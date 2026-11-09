@@ -198,6 +198,7 @@ ipcMain.handle('md:saveMapping', (_e, m) => saveMapping(m));
 ipcMain.handle('md:resetMapping', () => {
   const defaults = JSON.parse(fs.readFileSync(DEFAULT_MAPPING, 'utf8'));
   if (mapping.display) defaults.display = mapping.display;
+  if (mapping.language) defaults.language = mapping.language;
   return saveMapping(defaults);
 });
 

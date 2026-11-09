@@ -6,6 +6,86 @@ const CHORD_MOD = 'LB';
 const BUTTON_NAMES = ['A', 'B', 'X', 'Y', 'LB', 'RB', 'LT', 'RT', 'Back', 'Start', 'LS', 'RS', 'DUp', 'DDown', 'DLeft', 'DRight', 'Guide'];
 
 let mapping = null;
+const LANGUAGES = { pl: 'Polski', en: 'English' };
+const PL = {
+  "Keyboard key…": "Klawisz klawiatury…",
+  "Left click": "Lewy klik",
+  "Right click": "Prawy klik",
+  "Steam on-screen keyboard": "Klawiatura ekranowa Steam",
+  "Close popup window": "Zamknij wyskakujące okno",
+  "Center cursor on character": "Wyśrodkuj kursor na postaci",
+  "Hold + D-pad / right stick: cursor next to character": "Przytrzymaj + krzyżak / prawa gałka: kursor obok postaci",
+  "Jump to next field / button": "Przejdź do następnego pola / przycisku",
+  "Jump to previous field / button": "Przejdź do poprzedniego pola / przycisku",
+  "Show / hide cursor": "Pokaż / ukryj kursor",
+  "Zoom in": "Przybliż",
+  "Zoom out": "Oddal",
+  "Reset zoom": "Resetuj przybliżenie",
+  "Reload page": "Odśwież stronę",
+  "Toggle fullscreen": "Przełącz pełny ekran",
+  "— Nothing —": "— Brak —",
+  "Inventory (bind I in game first)": "Pokaż/ukryj ekwipunek (najpierw ustaw I w grze)",
+  "Turn-based fight with monster": "Turowa walka z potworem",
+  "Quick fight": "Szybka walka",
+  "Attack nearest player": "Atak najbliższego Gracza",
+  "Close battle window": "Zamknięcie okna walki",
+  "Show battle log": "Wyświetlenie logu walki",
+  "Resize battle log": "Zmiana rozmiaru logu walki",
+  "Battle sets": "Zestawy do walki",
+  "Talk to nearest NPC": "Rozmowa z najbliższym NPC",
+  "Mini map": "Podręczna mapa",
+  "World map": "Mapa świata",
+  "Chat": "Czat",
+  "Group": "Grupa",
+  "Invite to group": "Zaproś do grupy",
+  "Clans": "Klany",
+  "Community": "Społeczność",
+  "Abyss": "Otchłań",
+  "Quests": "Questy",
+  "Skills": "Umiejętności",
+  "Character switch panel": "Panel zmiany Postaci",
+  "Console": "Konsola",
+  "Buttons": "Przyciski",
+  "Hold L1 +": "Przytrzymaj L1 +",
+  "D-pad": "Krzyżak",
+  "Left stick": "Lewa gałka",
+  "Right stick": "Prawa gałka",
+  "App": "Aplikacja",
+  "Other": "Inne",
+  "Current": "Obecne",
+  "Fullscreen": "Pełny ekran",
+  "On": "Wł.",
+  "Off": "Wył.",
+  "Window size": "Rozmiar okna",
+  "Language": "Język",
+  "Quit MargoDeck": "Zamknij MargoDeck",
+  "Restore default mapping": "Przywróć domyślne mapowanie",
+  "Close menu": "Zamknij menu",
+  "+ Add another key…": "+ Dodaj kolejny klawisz…",
+  "− Remove last key": "− Usuń ostatni klawisz",
+  "MargoDeck – settings": "MargoDeck – ustawienia",
+  "(current)": "(obecny)",
+  "Choosing a size leaves fullscreen": "Wybranie rozmiaru wyłącza pełny ekran",
+  "Add key to: {0}": "Dodaj klawisz do: {0}",
+  "Assign: {0}": "Przypisz: {0}",
+  "Key for: {0}": "Klawisz dla: {0}",
+  "Menu: close": "Menu: zamknij",
+  "D-pad / left stick: move · A: select · B: back · View + Menu opens this screen · Changes are saved immediately": "Krzyżak / lewa gałka: wybór · A: zatwierdź · B: wstecz · View + Menu otwiera ten ekran · Zmiany zapisują się od razu",
+  "modifier": "modyfikator",
+  "MargoDeck settings": "Ustawienia MargoDeck",
+  "Cursor": "Kursor",
+  "Button": "Przycisk",
+  "Press": "Naciśnij",
+  "Space": "Spacja"
+};
+let lang = 'pl';
+function t(text, ...args) {
+  let out = lang === 'pl' && PL[text] != null ? PL[text] : text;
+  args.forEach((v, i) => { out = out.replace(`{${i}}`, v); });
+  return out;
+}
+const setLanguage = (m) => { lang = LANGUAGES[m?.language] ? m.language : 'pl'; };
+
 const prevButtons = new Array(BUTTON_NAMES.length).fill(false);
 const heldKeys = new Set();
 const chordUsed = new Set();
@@ -271,8 +351,10 @@ const SLOT_GROUPS = [
 const KEY_ONLY_GROUPS = new Set(['dpad', 'leftStick']);
 const LABELS = {
   Back: 'View', Start: 'Menu', LS: 'L3', RS: 'R3', LB: 'L1', RB: 'R1', LT: 'L2', RT: 'R2',
-  DUp: 'D-pad ↑', DDown: 'D-pad ↓', DLeft: 'D-pad ←', DRight: 'D-pad →',
+  up: '↑', down: '↓', left: '←', right: '→',
 };
+const DPAD_ARROWS = { DUp: '↑', DDown: '↓', DLeft: '←', DRight: '→' };
+const buttonLabel = (n) => (DPAD_ARROWS[n] ? `${t('D-pad')} ${DPAD_ARROWS[n]}` : LABELS[n] || n);
 
 const ACTIONS = [
   { type: 'key', label: 'Keyboard key…' },
@@ -348,6 +430,7 @@ function slotList() {
     { special: 'reload', label: 'Reload page', title: 'App' },
     { special: 'fullscreen', label: 'Fullscreen', value: display.fullscreen ? 'On' : 'Off', title: 'App' },
     { special: 'resolution', label: 'Window size', value: `${display.width} × ${display.height}`, title: 'App' },
+    { special: 'language', label: 'Language', value: LANGUAGES[lang], title: 'App' },
     { special: 'quit', label: 'Quit MargoDeck', title: 'App' },
   ];
   for (const g of SLOT_GROUPS) for (const n of g.names) items.push({ group: g.group, name: n, title: g.title });
@@ -374,21 +457,21 @@ function setSlot(slot, action) {
 }
 
 const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-const keyLabel = (k) => esc(KEY_LABELS[k] || (k.length === 1 ? k.toUpperCase() : k));
+const keyLabel = (k) => esc(t(KEY_LABELS[k] || '') || (k.length === 1 ? k.toUpperCase() : k));
 function describe(a) {
   if (!a) return '<span class="dim">—</span>';
   const extra = Array.isArray(a.also) && a.also.length
-    ? ' / ' + a.also.map((t) => esc((ACTIONS.find((x) => x.type === t) || { label: t }).label)).join(' / ')
+    ? ' / ' + a.also.map((type) => esc(t((ACTIONS.find((x) => x.type === type) || { label: type }).label))).join(' / ')
     : '';
   if (a.type === 'keys') return (a.keys || []).map((k) => describe({ type: 'key', key: k })).join(' / ') + extra;
   if (a.type === 'key' && extra) return describe({ type: 'key', key: a.key }) + extra;
   if (a.type === 'key') {
     const g = gameActionFor(a.key);
-    return (g ? `${esc(g.label)} ` : '') + `<kbd>${keyLabel(a.key)}</kbd>`;
+    return (g ? `${esc(t(g.label))} ` : '') + `<kbd>${keyLabel(a.key)}</kbd>`;
   }
-  return esc((ACTIONS.find((x) => x.type === a.type) || { label: a.type }).label);
+  return esc(t((ACTIONS.find((x) => x.type === a.type) || { label: a.type }).label));
 }
-const slotName = (s) => (s.group === 'chords' ? 'L1 + ' : '') + (LABELS[s.name] || s.name);
+const slotName = (s) => (s.group === 'chords' ? 'L1 + ' : '') + buttonLabel(s.name);
 const MAX_KEYS = 3;
 
 function slotKeys(slot) {
@@ -415,20 +498,20 @@ function addSlotKey(slot, key) {
 
 function actionList() {
   const keyOnly = KEY_ONLY_GROUPS.has(menu.slot.group);
-  const game = GAME_ACTIONS.map((g) => ({ type: 'game', key: g.key, label: `${g.label} <kbd>${keyLabel(g.key)}</kbd>`, group: 'Margonem' }));
+  const game = GAME_ACTIONS.map((g) => ({ type: 'game', key: g.key, label: `${esc(t(g.label))} <kbd>${keyLabel(g.key)}</kbd>`, group: 'Margonem' }));
   if (menu.adding) {
     const keys = slotKeys(menu.slot);
-    return [...game.filter((g) => !keys.includes(g.key)), { type: 'key', label: 'Keyboard key…', group: 'Other' }];
+    return [...game.filter((g) => !keys.includes(g.key)), { type: 'key', label: t('Keyboard key…'), group: 'Other' }];
   }
   const current = [];
   const keys = keyOnly ? [] : slotKeys(menu.slot);
   if (keys.length) {
     current.push({ type: 'current', label: describe(getSlot(menu.slot)), group: 'Current' });
-    if (keys.length < MAX_KEYS) current.push({ type: 'addKey', label: '+ Add another key…', group: 'Current' });
-    if (keys.length > 1) current.push({ type: 'removeKey', label: '− Remove last key', group: 'Current' });
+    if (keys.length < MAX_KEYS) current.push({ type: 'addKey', label: t('+ Add another key…'), group: 'Current' });
+    if (keys.length > 1) current.push({ type: 'removeKey', label: t('− Remove last key'), group: 'Current' });
   }
   const base = keyOnly ? ACTIONS.filter((a) => a.type === 'key' || a.type === 'none') : ACTIONS;
-  return [...current, ...game, ...base.map((a) => ({ ...a, group: 'Other' }))];
+  return [...current, ...game, ...base.map((a) => ({ ...a, label: esc(t(a.label)), group: 'Other' }))];
 }
 
 function openMenu() {
@@ -473,38 +556,38 @@ function renderMenu() {
   let title;
   let body;
   if (menu.screen === 'slots') {
-    title = 'MargoDeck – settings';
+    title = t('MargoDeck – settings');
     let lastGroup = null;
     body = slotList().map((it, i) => {
       let h = '';
       const grp = it.title || 'Other';
-      if (grp !== lastGroup) { lastGroup = grp; h += `<div class="grp">${grp}</div>`; }
-      const left = it.special ? it.label : slotName(it);
-      const right = it.special ? esc(it.value || '') : describe(getSlot(it));
+      if (grp !== lastGroup) { lastGroup = grp; h += `<div class="grp">${t(grp)}</div>`; }
+      const left = it.special ? t(it.label) : slotName(it);
+      const right = it.special ? esc(t(it.value || '')) : describe(getSlot(it));
       return h + `<div class="row${i === menu.idx ? ' sel' : ''}" data-i="${i}"><span>${left}</span><span>${right}</span></div>`;
     }).join('');
   } else if (menu.screen === 'res') {
-    title = 'Window size';
+    title = t('Window size');
     body = RESOLUTIONS.map(([w, h, note], i) => {
-      const cur = w === display.width && h === display.height ? ' <span class="dim">(current)</span>' : '';
+      const cur = w === display.width && h === display.height ? ` <span class="dim">${t('(current)')}</span>` : '';
       return `<div class="row${i === menu.idx ? ' sel' : ''}" data-i="${i}"><span>${w} × ${h}${cur}</span><span class="dim">${note}</span></div>`;
-    }).join('') + '<div class="grp">Choosing a size leaves fullscreen</div>';
+    }).join('') + `<div class="grp">${t('Choosing a size leaves fullscreen')}</div>`;
   } else if (menu.screen === 'actions') {
-    title = menu.adding ? `Add key to: ${slotName(menu.slot)}` : `Assign: ${slotName(menu.slot)}`;
+    title = menu.adding ? t('Add key to: {0}', slotName(menu.slot)) : t('Assign: {0}', slotName(menu.slot));
     let lastGroup = null;
     body = actionList().map((a, i) => {
-      const h = a.group !== lastGroup ? `<div class="grp">${(lastGroup = a.group)}</div>` : '';
+      const h = a.group !== lastGroup ? `<div class="grp">${t((lastGroup = a.group))}</div>` : '';
       return h + `<div class="row${i === menu.idx ? ' sel' : ''}" data-i="${i}"><span>${a.label}</span></div>`;
     }).join('');
   } else {
-    title = `Key for: ${slotName(menu.slot)}`;
+    title = t('Key for: {0}', slotName(menu.slot));
     body = '<div class="keys">' + KEY_ROWS.map((r, ri) => '<div class="krow">' + r.map((k, ci) =>
       `<div class="key${ri === menu.row && ci === menu.col ? ' sel' : ''}" data-r="${ri}" data-c="${ci}">${keyLabel(k)}</div>`).join('') + '</div>').join('') + '</div>';
   }
   menuEl.innerHTML = `<style>${MENU_CSS}</style><div class="panel">
-    <header><h2>${title}</h2><span class="dim">Menu: close</span></header>
+    <header><h2>${title}</h2><span class="dim">${t('Menu: close')}</span></header>
     <div class="body">${body}</div>
-    <footer>D-pad / left stick: move · A: select · B: back · View + Menu opens this screen · Changes are saved immediately</footer></div>`;
+    <footer>${t('D-pad / left stick: move · A: select · B: back · View + Menu opens this screen · Changes are saved immediately')}</footer></div>`;
   menuEl.querySelectorAll('[data-i]').forEach((el) => el.addEventListener('click', () => { menu.idx = +el.dataset.i; menuSelect(); }));
   menuEl.querySelectorAll('[data-r]').forEach((el) => el.addEventListener('click', () => { menu.row = +el.dataset.r; menu.col = +el.dataset.c; menuSelect(); }));
   const sel = menuEl.querySelector('.sel');
@@ -516,6 +599,14 @@ function menuSelect() {
     const it = slotList()[menu.idx];
     if (it.special === 'close') return closeMenu();
     if (it.special === 'quit') { ipcRenderer.send('md:action', 'quit'); return; }
+    if (it.special === 'language') {
+      const codes = Object.keys(LANGUAGES);
+      mapping.language = codes[(codes.indexOf(lang) + 1) % codes.length];
+      setLanguage(mapping);
+      ipcRenderer.invoke('md:saveMapping', mapping);
+      renderMenu();
+      return;
+    }
     if (it.special === 'reload') { closeMenu(); ipcRenderer.send('md:action', 'reload'); return; }
     if (it.special === 'fullscreen') {
       ipcRenderer.invoke('md:setDisplay', { fullscreen: !display.fullscreen }).then((d) => { display = d; renderMenu(); });
@@ -528,7 +619,7 @@ function menuSelect() {
       return;
     }
     if (it.special === 'reset') {
-      ipcRenderer.invoke('md:resetMapping').then((m) => { mapping = m; renderMenu(); });
+      ipcRenderer.invoke('md:resetMapping').then((m) => { mapping = m; setLanguage(m); renderMenu(); });
       return;
     }
     menu = { screen: 'actions', idx: 0, slot: it, back: menu.idx };
@@ -635,18 +726,18 @@ function sheetRows() {
   const rows = [];
   const cell = (a) => (a ? describe(a) : '<span class="dim">—</span>');
   for (const n of ['A', 'B', 'X', 'Y', 'LB', 'RB', 'LT', 'RT', 'LS', 'RS', 'Start']) {
-    rows.push([LABELS[n] || n, cell(mapping.buttons?.[n]), n === CHORD_MOD ? '<span class="dim">modifier</span>' : cell(mapping.chords?.[n])]);
+    rows.push([buttonLabel(n), cell(mapping.buttons?.[n]), n === CHORD_MOD ? `<span class="dim">${t('modifier')}</span>` : cell(mapping.chords?.[n])]);
   }
   rows.push(['View', cell(mapping.buttons?.Back), '']);
-  rows.push(['View + Menu', 'MargoDeck settings', '']);
+  rows.push(['View + Menu', t('MargoDeck settings'), '']);
   const dpadNames = { up: 'DUp', down: 'DDown', left: 'DLeft', right: 'DRight' };
   for (const d of ['up', 'down', 'left', 'right']) {
     const k = mapping.dpad?.[d];
-    rows.push([LABELS[dpadNames[d]], k ? describe({ type: 'key', key: k }) : cell(null), cell(mapping.chords?.[dpadNames[d]])]);
+    rows.push([buttonLabel(dpadNames[d]), k ? describe({ type: 'key', key: k }) : cell(null), cell(mapping.chords?.[dpadNames[d]])]);
   }
   const ls = mapping.leftStick || {};
-  rows.push(['Left stick', ['up', 'left', 'down', 'right'].map((d) => `<kbd>${keyLabel(ls[d] || '—')}</kbd>`).join(''), '']);
-  rows.push(['Right stick', 'Cursor', '']);
+  rows.push([t('Left stick'), ['up', 'left', 'down', 'right'].map((d) => `<kbd>${keyLabel(ls[d] || '—')}</kbd>`).join(''), '']);
+  rows.push([t('Right stick'), t('Cursor'), '']);
   return rows;
 }
 
@@ -672,7 +763,7 @@ function renderSheet() {
 #md-sheet tbody th{color:#f0c86a;white-space:nowrap;font-weight:600}
 #md-sheet kbd{font:600 12px ui-monospace,monospace;padding:0 5px;margin-left:2px;border:1px solid currentColor;border-radius:4px}
 #md-sheet .dim{color:#7f8aa3}
-</style><table><thead><tr><th>Button</th><th>Press</th><th>Hold L1 +</th></tr></thead><tbody>${rows}</tbody></table>`;
+</style><table><thead><tr><th>${t('Button')}</th><th>${t('Press')}</th><th>${t('Hold L1 +')}</th></tr></thead><tbody>${rows}</tbody></table>`;
 }
 
 function deadzone(v) {
@@ -791,10 +882,11 @@ window.addEventListener('blur', releaseAllKeys);
 
 ipcRenderer.on('md:display-updated', (_e, d) => { display = d; if (menu) renderMenu(); });
 
-ipcRenderer.on('md:mapping-updated', (_e, m) => { mapping = m; if (menu) renderMenu(); renderSheet(); });
+ipcRenderer.on('md:mapping-updated', (_e, m) => { mapping = m; setLanguage(m); if (menu) renderMenu(); renderSheet(); });
 
 ipcRenderer.invoke('md:mapping').then((m) => {
   mapping = m;
+  setLanguage(m);
   cursor.x = window.innerWidth / 2;
   cursor.y = window.innerHeight / 2;
   requestAnimationFrame(tick);
