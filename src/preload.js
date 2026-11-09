@@ -662,6 +662,7 @@ function menuTick(pad) {
 
 const SHEET_DELAY = 500;
 let backDownAt = 0;
+let modDownAt = 0;
 let sheetShown = false;
 let sheetEl = null;
 
@@ -948,8 +949,8 @@ function tick() {
     }
 
     if (name === CHORD_MOD) {
-      if (pressed) { chordUsed.delete(CHORD_MOD); return; }
-      if (!chordUsed.has(CHORD_MOD)) { runAction(mapping.buttons[CHORD_MOD], true); runAction(mapping.buttons[CHORD_MOD], false); }
+      if (pressed) { chordUsed.delete(CHORD_MOD); modDownAt = performance.now(); return; }
+      if (!chordUsed.has(CHORD_MOD) && performance.now() - modDownAt < SHEET_DELAY) { runAction(mapping.buttons[CHORD_MOD], true); runAction(mapping.buttons[CHORD_MOD], false); }
       chordUsed.delete(CHORD_MOD);
       return;
     }
