@@ -12,8 +12,8 @@
   },
   "dpad": {
     "up": "i",
-    "down": "h",
-    "left": "u",
+    "down": "u",
+    "left": "h",
     "right": "c"
   },
   "buttons": {
@@ -21,12 +21,21 @@
       "type": "click"
     },
     "B": {
-      "type": "key",
-      "key": "Escape"
+      "type": "keys",
+      "keys": [
+        "Escape",
+        "z"
+      ],
+      "also": [
+        "closePopup"
+      ]
     },
     "X": {
-      "type": "key",
-      "key": "f"
+      "type": "keys",
+      "keys": [
+        "f",
+        "q"
+      ]
     },
     "Y": {
       "type": "key",
@@ -36,16 +45,11 @@
       "type": "key",
       "key": "Tab"
     },
-    "RB": {
-      "type": "key",
-      "key": "z"
-    },
     "LT": {
       "type": "rightclick"
     },
     "RT": {
-      "type": "key",
-      "key": "q"
+      "type": "click"
     },
     "Start": {
       "type": "key",
@@ -61,36 +65,43 @@
     },
     "RS": {
       "type": "centerCursor"
+    },
+    "RB": {
+      "type": "nudgeModifier"
     }
   },
   "chords": {
-    "B": {
-      "type": "closePopup"
-    },
     "X": {
       "type": "key",
       "key": "x"
     },
-    "LB": {
-      "type": "zoomOut"
-    },
-    "RB": {
-      "type": "zoomIn"
+    "Y": {
+      "type": "key",
+      "key": "v"
     },
     "LT": {
       "type": "key",
       "key": "g"
     },
-    "RT": {
-      "type": "key",
-      "key": "v"
+    "DUp": {
+      "type": "zoomIn"
     },
-    "LS": {
-      "type": "zoomReset"
+    "DDown": {
+      "type": "zoomOut"
     },
-    "RS": {
+    "DLeft": {
       "type": "key",
       "key": "b"
+    },
+    "DRight": {
+      "type": "zoomReset"
+    },
+    "A": {
+      "type": "focusNext"
+    },
+    "B": {
+      "type": "focusPrev"
     }
-  }
+  },
+  "nudgeTiles": 1
 }

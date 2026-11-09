@@ -1,13 +1,15 @@
 'use strict';
 
-const { ipcRenderer } = require('electron');
+const { ipcRenderer, webFrame } = require('electron');
 
+const CHORD_MOD = 'LB';
 const BUTTON_NAMES = ['A', 'B', 'X', 'Y', 'LB', 'RB', 'LT', 'RT', 'Back', 'Start', 'LS', 'RS', 'DUp', 'DDown', 'DLeft', 'DRight', 'Guide'];
 
 let mapping = null;
 const prevButtons = new Array(BUTTON_NAMES.length).fill(false);
 const heldKeys = new Set();
 const chordUsed = new Set();
+const nudgeUsed = new Set();
 let cursor = { x: 640, y: 400, visible: true, lastMove: 0 };
 let cursorEl = null;
 
@@ -28,37 +30,158 @@ const releaseAllKeys = () => [...heldKeys].forEach((k) => setKey(k, false));
 
 function runAction(action, down) {
   if (!action) return;
+  if (down && Array.isArray(action.also)) action.also.forEach((t) => ipcRenderer.send('md:action', t));
   switch (action.type) {
     case 'key': sendKey(action.key, down); break;
+    case 'keys': (action.keys || []).forEach((k) => sendKey(k, down)); break;
     case 'click': sendMouse(down ? 'down' : 'up', 'left'); break;
     case 'rightclick': sendMouse(down ? 'down' : 'up', 'right'); break;
     case 'toggleCursor': if (down) { cursor.visible = !cursor.visible; drawCursor(); } break;
     case 'centerCursor': if (down) centerCursorOnHero(); break;
+    case 'nudgeModifier': break;
+    case 'focusNext': if (down) jumpToTarget(1); break;
+    case 'focusPrev': if (down) jumpToTarget(-1); break;
     case 'toggleHelp': if (down) toggleMenu(); break;
     case 'none': break;
     default: if (down) ipcRenderer.send('md:action', action.type);
   }
 }
 
-function heroScreenPos() {
-  const center = (r) => ({ x: r.left + r.width / 2, y: r.top + r.height / 2 });
-  const hero = document.getElementById('hero');
-  if (hero) {
-    const r = hero.getBoundingClientRect();
-    if (r.width && r.height) return center(r);
-  }
-  let best = null;
-  for (const c of document.querySelectorAll('canvas')) {
-    const r = c.getBoundingClientRect();
-    if (r.width * r.height > (best ? best.width * best.height : 0)) best = r;
-  }
-  return best ? center(best) : { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+const TILE = 32;
+const HERO_POS_SCRIPT = `(() => {
+  const E = window.Engine;
+  const canvas = document.getElementById('GAME_CANVAS');
+  if (!E || !E.hero || !E.hero.d || !E.map || !E.map.offset || !canvas) return null;
+  const r = canvas.getBoundingClientRect();
+  if (!r.width || !canvas.width) return null;
+  let zoom = 1;
+  try { zoom = (E.zoomManager && E.zoomManager.getActualZoom()) || 1; } catch (e) {}
+  const scale = (r.width / canvas.width) * zoom;
+  return {
+    x: r.left + (E.hero.d.x * ${TILE} + ${TILE / 2} - E.map.offset[0]) * scale,
+    y: r.top + (E.hero.d.y * ${TILE} + ${TILE / 2} - E.map.offset[1]) * scale,
+    tile: ${TILE} * scale,
+  };
+})()`;
+
+function fallbackHeroPos() {
+  const canvas = document.getElementById('GAME_CANVAS');
+  const r = canvas ? canvas.getBoundingClientRect() : null;
+  if (r && r.width) return { x: r.left + r.width / 2, y: r.top + r.height / 2, tile: TILE };
+  return { x: window.innerWidth / 2, y: window.innerHeight / 2, tile: TILE };
 }
 
-function centerCursorOnHero() {
-  const p = heroScreenPos();
-  cursor.x = Math.max(0, Math.min(window.innerWidth - 1, p.x));
-  cursor.y = Math.max(0, Math.min(window.innerHeight - 1, p.y));
+async function heroScreenPos() {
+  try {
+    const p = await webFrame.executeJavaScript(HERO_POS_SCRIPT);
+    if (p && Number.isFinite(p.x) && Number.isFinite(p.y)) return p;
+  } catch (_) {}
+  return fallbackHeroPos();
+}
+
+const TARGETS_SCRIPT = `(() => {
+  const SELECTOR = 'input:not([type=hidden]), textarea, select, button, a[href], [contenteditable=""], [contenteditable=true], [tabindex], [role=button], [onclick]';
+  const vw = innerWidth, vh = innerHeight;
+  const jq = window.jQuery || window.$;
+  const hasHandlers = (el) => {
+    if (el.onclick || el.onmousedown || el.onmouseup) return true;
+    if (jq && jq._data) {
+      const ev = jq._data(el, 'events');
+      if (ev && (ev.click || ev.mousedown || ev.mouseup || ev.pointerdown || ev.touchstart)) return true;
+    }
+    return false;
+  };
+  const set = new Set(document.querySelectorAll(SELECTOR));
+  for (const el of document.body.getElementsByTagName('*')) {
+    if (!set.has(el) && hasHandlers(el)) set.add(el);
+  }
+  const isCandidate = (el) => set.has(el);
+  const out = [];
+  for (const el of set) {
+    if (el.id === 'GAME_CANVAS' || el.closest('#md-menu, #md-sheet, #margodeck-cursor, #md-focus')) continue;
+    if (el.disabled) continue;
+    const r = el.getBoundingClientRect();
+    if (r.width < 4 || r.height < 4) continue;
+    if (r.width * r.height > vw * vh * 0.5) continue;
+    const cx = Math.min(vw - 1, Math.max(0, r.left + r.width / 2));
+    const cy = Math.min(vh - 1, Math.max(0, r.top + r.height / 2));
+    if (r.right < 0 || r.bottom < 0 || r.left > vw || r.top > vh) continue;
+    const hit = document.elementFromPoint(cx, cy);
+    if (!hit) continue;
+    let owner = hit;
+    while (owner && !isCandidate(owner)) owner = owner.parentElement;
+    if (owner !== el) continue;
+    const st = getComputedStyle(el);
+    if (st.visibility === 'hidden' || +st.opacity === 0) continue;
+    out.push({ x: cx, y: cy, l: r.left, t: r.top, w: r.width, h: r.height });
+  }
+  return out;
+})()`;
+
+const ROW_TOLERANCE = 12;
+let lastTarget = null;
+let focusEl = null;
+let focusTimer = null;
+
+const readingOrder = (a, b) => (Math.abs(a.y - b.y) <= ROW_TOLERANCE ? a.x - b.x : a.y - b.y);
+
+function showFocusBox(t) {
+  if (!focusEl || !document.documentElement.contains(focusEl)) {
+    focusEl = document.createElement('div');
+    focusEl.id = 'md-focus';
+    Object.assign(focusEl.style, {
+      position: 'fixed', zIndex: '2147483644', pointerEvents: 'none', borderRadius: '4px',
+      border: '2px solid #f0c86a', boxShadow: '0 0 0 2px rgba(0,0,0,.6), 0 0 12px rgba(240,200,106,.7)',
+      transition: 'opacity .3s',
+    });
+    document.documentElement.appendChild(focusEl);
+  }
+  Object.assign(focusEl.style, {
+    left: `${t.l - 3}px`, top: `${t.t - 3}px`, width: `${t.w + 6}px`, height: `${t.h + 6}px`, opacity: '1',
+  });
+  clearTimeout(focusTimer);
+  focusTimer = setTimeout(() => { if (focusEl) focusEl.style.opacity = '0'; }, 1500);
+}
+
+async function jumpToTarget(dir) {
+  let targets = [];
+  try { targets = (await webFrame.executeJavaScript(TARGETS_SCRIPT)) || []; } catch (_) {}
+  if (!targets.length) return;
+  targets.sort(readingOrder);
+  const from = lastTarget && Math.abs(lastTarget.x - cursor.x) < 2 && Math.abs(lastTarget.y - cursor.y) < 2
+    ? lastTarget
+    : { x: cursor.x, y: cursor.y };
+  let next;
+  if (dir > 0) next = targets.find((t) => readingOrder(t, from) > 0) || targets[0];
+  else next = [...targets].reverse().find((t) => readingOrder(t, from) < 0) || targets[targets.length - 1];
+  lastTarget = { x: next.x, y: next.y };
+  cursor.x = next.x;
+  cursor.y = next.y;
+  cursor.visible = true;
+  cursor.lastMove = performance.now();
+  realMouseActive = false;
+  sendMouse('move');
+  drawCursor();
+  showFocusBox(next);
+}
+
+const NUDGE_INTERVAL_MS = 80;
+let nudgeBusy = false;
+let nudgeLast = 0;
+
+function nudgeTowards(dx, dy) {
+  const now = performance.now();
+  if (nudgeBusy || now - nudgeLast < NUDGE_INTERVAL_MS) return;
+  nudgeBusy = true;
+  nudgeLast = now;
+  centerCursorOnHero(dx, dy).finally(() => { nudgeBusy = false; });
+}
+
+async function centerCursorOnHero(dx = 0, dy = 0) {
+  const p = await heroScreenPos();
+  const step = (p.tile || TILE) * (mapping.nudgeTiles ?? 1);
+  cursor.x = Math.max(0, Math.min(window.innerWidth - 1, p.x + dx * step));
+  cursor.y = Math.max(0, Math.min(window.innerHeight - 1, p.y + dy * step));
   cursor.visible = true;
   cursor.lastMove = performance.now();
   realMouseActive = false;
@@ -141,12 +264,15 @@ window.addEventListener('mousemove', (e) => {
 
 const SLOT_GROUPS = [
   { group: 'buttons', title: 'Buttons', names: ['A', 'B', 'X', 'Y', 'LB', 'RB', 'LT', 'RT', 'LS', 'RS', 'Start', 'Back'] },
-  { group: 'chords', title: 'Hold View +', names: ['A', 'B', 'X', 'Y', 'LB', 'RB', 'LT', 'RT', 'LS', 'RS'] },
+  { group: 'chords', title: 'Hold L1 +', names: ['A', 'B', 'X', 'Y', 'RB', 'LT', 'RT', 'LS', 'RS', 'Start', 'DUp', 'DDown', 'DLeft', 'DRight'] },
   { group: 'dpad', title: 'D-pad', names: ['up', 'down', 'left', 'right'] },
   { group: 'leftStick', title: 'Left stick', names: ['up', 'down', 'left', 'right'] },
 ];
 const KEY_ONLY_GROUPS = new Set(['dpad', 'leftStick']);
-const LABELS = { Back: 'View', Start: 'Menu', LS: 'L3', RS: 'R3', LB: 'L1', RB: 'R1', LT: 'L2', RT: 'R2' };
+const LABELS = {
+  Back: 'View', Start: 'Menu', LS: 'L3', RS: 'R3', LB: 'L1', RB: 'R1', LT: 'L2', RT: 'R2',
+  DUp: 'D-pad ↑', DDown: 'D-pad ↓', DLeft: 'D-pad ←', DRight: 'D-pad →',
+};
 
 const ACTIONS = [
   { type: 'key', label: 'Keyboard key…' },
@@ -155,6 +281,9 @@ const ACTIONS = [
   { type: 'keyboard', label: 'Steam on-screen keyboard' },
   { type: 'closePopup', label: 'Close popup window' },
   { type: 'centerCursor', label: 'Center cursor on character' },
+  { type: 'nudgeModifier', label: 'Hold + D-pad / right stick: cursor next to character' },
+  { type: 'focusNext', label: 'Jump to next field / button' },
+  { type: 'focusPrev', label: 'Jump to previous field / button' },
   { type: 'toggleCursor', label: 'Show / hide cursor' },
   { type: 'zoomIn', label: 'Zoom in' },
   { type: 'zoomOut', label: 'Zoom out' },
@@ -219,6 +348,7 @@ function slotList() {
     { special: 'reload', label: 'Reload page', title: 'App' },
     { special: 'fullscreen', label: 'Fullscreen', value: display.fullscreen ? 'On' : 'Off', title: 'App' },
     { special: 'resolution', label: 'Window size', value: `${display.width} × ${display.height}`, title: 'App' },
+    { special: 'quit', label: 'Quit MargoDeck', title: 'App' },
   ];
   for (const g of SLOT_GROUPS) for (const n of g.names) items.push({ group: g.group, name: n, title: g.title });
   items.push({ special: 'reset', label: 'Restore default mapping' });
@@ -247,17 +377,58 @@ const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&l
 const keyLabel = (k) => esc(KEY_LABELS[k] || (k.length === 1 ? k.toUpperCase() : k));
 function describe(a) {
   if (!a) return '<span class="dim">—</span>';
+  const extra = Array.isArray(a.also) && a.also.length
+    ? ' / ' + a.also.map((t) => esc((ACTIONS.find((x) => x.type === t) || { label: t }).label)).join(' / ')
+    : '';
+  if (a.type === 'keys') return (a.keys || []).map((k) => describe({ type: 'key', key: k })).join(' / ') + extra;
+  if (a.type === 'key' && extra) return describe({ type: 'key', key: a.key }) + extra;
   if (a.type === 'key') {
     const g = gameActionFor(a.key);
     return (g ? `${esc(g.label)} ` : '') + `<kbd>${keyLabel(a.key)}</kbd>`;
   }
   return esc((ACTIONS.find((x) => x.type === a.type) || { label: a.type }).label);
 }
-const slotName = (s) => (s.group === 'chords' ? 'View + ' : '') + (LABELS[s.name] || s.name);
+const slotName = (s) => (s.group === 'chords' ? 'L1 + ' : '') + (LABELS[s.name] || s.name);
+const MAX_KEYS = 3;
+
+function slotKeys(slot) {
+  const a = getSlot(slot);
+  if (!a) return [];
+  if (a.type === 'key') return [a.key];
+  if (a.type === 'keys') return [...(a.keys || [])];
+  return [];
+}
+
+function setSlotKeys(slot, keys) {
+  const also = getSlot(slot)?.also;
+  const withAlso = (a) => (also && also.length ? { ...a, also } : a);
+  if (keys.length === 0) setSlot(slot, null);
+  else if (keys.length === 1) setSlot(slot, withAlso({ type: 'key', key: keys[0] }));
+  else setSlot(slot, withAlso({ type: 'keys', keys }));
+}
+
+function addSlotKey(slot, key) {
+  const keys = slotKeys(slot);
+  if (!keys.includes(key) && keys.length < MAX_KEYS) keys.push(key);
+  setSlotKeys(slot, keys);
+}
+
 function actionList() {
+  const keyOnly = KEY_ONLY_GROUPS.has(menu.slot.group);
   const game = GAME_ACTIONS.map((g) => ({ type: 'game', key: g.key, label: `${g.label} <kbd>${keyLabel(g.key)}</kbd>`, group: 'Margonem' }));
-  const base = KEY_ONLY_GROUPS.has(menu.slot.group) ? ACTIONS.filter((a) => a.type === 'key' || a.type === 'none') : ACTIONS;
-  return [...game, ...base.map((a) => ({ ...a, group: 'Other' }))];
+  if (menu.adding) {
+    const keys = slotKeys(menu.slot);
+    return [...game.filter((g) => !keys.includes(g.key)), { type: 'key', label: 'Keyboard key…', group: 'Other' }];
+  }
+  const current = [];
+  const keys = keyOnly ? [] : slotKeys(menu.slot);
+  if (keys.length) {
+    current.push({ type: 'current', label: describe(getSlot(menu.slot)), group: 'Current' });
+    if (keys.length < MAX_KEYS) current.push({ type: 'addKey', label: '+ Add another key…', group: 'Current' });
+    if (keys.length > 1) current.push({ type: 'removeKey', label: '− Remove last key', group: 'Current' });
+  }
+  const base = keyOnly ? ACTIONS.filter((a) => a.type === 'key' || a.type === 'none') : ACTIONS;
+  return [...current, ...game, ...base.map((a) => ({ ...a, group: 'Other' }))];
 }
 
 function openMenu() {
@@ -319,7 +490,7 @@ function renderMenu() {
       return `<div class="row${i === menu.idx ? ' sel' : ''}" data-i="${i}"><span>${w} × ${h}${cur}</span><span class="dim">${note}</span></div>`;
     }).join('') + '<div class="grp">Choosing a size leaves fullscreen</div>';
   } else if (menu.screen === 'actions') {
-    title = `Assign: ${slotName(menu.slot)}`;
+    title = menu.adding ? `Add key to: ${slotName(menu.slot)}` : `Assign: ${slotName(menu.slot)}`;
     let lastGroup = null;
     body = actionList().map((a, i) => {
       const h = a.group !== lastGroup ? `<div class="grp">${(lastGroup = a.group)}</div>` : '';
@@ -344,6 +515,7 @@ function menuSelect() {
   if (menu.screen === 'slots') {
     const it = slotList()[menu.idx];
     if (it.special === 'close') return closeMenu();
+    if (it.special === 'quit') { ipcRenderer.send('md:action', 'quit'); return; }
     if (it.special === 'reload') { closeMenu(); ipcRenderer.send('md:action', 'reload'); return; }
     if (it.special === 'fullscreen') {
       ipcRenderer.invoke('md:setDisplay', { fullscreen: !display.fullscreen }).then((d) => { display = d; renderMenu(); });
@@ -366,8 +538,16 @@ function menuSelect() {
     menu = { screen: 'slots', idx: menu.back };
   } else if (menu.screen === 'actions') {
     const a = actionList()[menu.idx];
-    if (a.type === 'game') {
-      setSlot(menu.slot, { type: 'key', key: a.key });
+    if (a.type === 'current') {
+      menu = { screen: 'slots', idx: menu.back };
+    } else if (a.type === 'addKey') {
+      menu = { ...menu, adding: true, idx: 0 };
+    } else if (a.type === 'removeKey') {
+      setSlotKeys(menu.slot, slotKeys(menu.slot).slice(0, -1));
+      menu = { ...menu, idx: 0 };
+    } else if (a.type === 'game') {
+      if (menu.adding) addSlotKey(menu.slot, a.key);
+      else setSlot(menu.slot, { type: 'key', key: a.key });
       menu = { screen: 'slots', idx: menu.back };
     } else if (a.type === 'key') {
       const cur = getSlot(menu.slot);
@@ -380,7 +560,9 @@ function menuSelect() {
       menu = { screen: 'slots', idx: menu.back };
     }
   } else {
-    setSlot(menu.slot, { type: 'key', key: KEY_ROWS[menu.row][menu.col] });
+    const key = KEY_ROWS[menu.row][menu.col];
+    if (menu.adding) addSlotKey(menu.slot, key);
+    else setSlot(menu.slot, { type: 'key', key });
     menu = { screen: 'slots', idx: menu.back };
   }
   renderMenu();
@@ -388,7 +570,9 @@ function menuSelect() {
 
 function menuBack() {
   if (menu.screen === 'slots') return closeMenu();
-  menu = menu.screen === 'keys' ? { ...menu, screen: 'actions', idx: 0 } : { screen: 'slots', idx: menu.back };
+  if (menu.screen === 'keys') menu = { ...menu, screen: 'actions', idx: 0 };
+  else if (menu.adding) menu = { ...menu, adding: false, idx: 0 };
+  else menu = { screen: 'slots', idx: menu.back };
   renderMenu();
 }
 
@@ -451,12 +635,14 @@ function sheetRows() {
   const rows = [];
   const cell = (a) => (a ? describe(a) : '<span class="dim">—</span>');
   for (const n of ['A', 'B', 'X', 'Y', 'LB', 'RB', 'LT', 'RT', 'LS', 'RS', 'Start']) {
-    rows.push([LABELS[n] || n, cell(mapping.buttons?.[n]), n === 'Start' ? 'MargoDeck settings' : cell(mapping.chords?.[n])]);
+    rows.push([LABELS[n] || n, cell(mapping.buttons?.[n]), n === CHORD_MOD ? '<span class="dim">modifier</span>' : cell(mapping.chords?.[n])]);
   }
   rows.push(['View', cell(mapping.buttons?.Back), '']);
+  rows.push(['View + Menu', 'MargoDeck settings', '']);
+  const dpadNames = { up: 'DUp', down: 'DDown', left: 'DLeft', right: 'DRight' };
   for (const d of ['up', 'down', 'left', 'right']) {
     const k = mapping.dpad?.[d];
-    rows.push([`D-pad ${d}`, k ? describe({ type: 'key', key: k }) : cell(null), '']);
+    rows.push([LABELS[dpadNames[d]], k ? describe({ type: 'key', key: k }) : cell(null), cell(mapping.chords?.[dpadNames[d]])]);
   }
   const ls = mapping.leftStick || {};
   rows.push(['Left stick', ['up', 'left', 'down', 'right'].map((d) => `<kbd>${keyLabel(ls[d] || '—')}</kbd>`).join(''), '']);
@@ -486,7 +672,7 @@ function renderSheet() {
 #md-sheet tbody th{color:#f0c86a;white-space:nowrap;font-weight:600}
 #md-sheet kbd{font:600 12px ui-monospace,monospace;padding:0 5px;margin-left:2px;border:1px solid currentColor;border-radius:4px}
 #md-sheet .dim{color:#7f8aa3}
-</style><table><thead><tr><th>Button</th><th>Press</th><th>Hold View +</th></tr></thead><tbody>${rows}</tbody></table>`;
+</style><table><thead><tr><th>Button</th><th>Press</th><th>Hold L1 +</th></tr></thead><tbody>${rows}</tbody></table>`;
 }
 
 function deadzone(v) {
@@ -512,9 +698,13 @@ function tick() {
   setKey(ls.left, lx < -dz);
   setKey(ls.right, lx > dz);
 
+  const nudgeHeld = Object.entries(mapping.buttons || {}).some(([n, a]) => a?.type === 'nudgeModifier' && pad.buttons[BUTTON_NAMES.indexOf(n)]?.pressed);
   const ax = deadzone(rx || 0);
   const ay = deadzone(ry || 0);
-  if (ax || ay) {
+  if (nudgeHeld && (ax || ay)) {
+    const len = Math.hypot(rx, ry) || 1;
+    nudgeTowards(rx / len, ry / len);
+  } else if (ax || ay) {
     const speed = mapping.cursorSpeed ?? 14;
     const accel = mapping.cursorAccel ?? 2.2;
     const f = (v) => Math.sign(v) * Math.pow(Math.abs(v), accel) * speed;
@@ -527,6 +717,7 @@ function tick() {
   drawCursor();
 
   const backHeld = pad.buttons[8]?.pressed;
+  const modHeld = pad.buttons[BUTTON_NAMES.indexOf(CHORD_MOD)]?.pressed;
   if (backHeld && !prevButtons[8]) backDownAt = performance.now();
   showSheet(!!backHeld && prevButtons[8] && performance.now() - backDownAt >= SHEET_DELAY);
 
@@ -538,6 +729,29 @@ function tick() {
     if (!name || menu) return;
 
     if (name.startsWith('D')) {
+      if (pressed && modHeld && mapping.chords?.[name]) {
+        chordUsed.add(CHORD_MOD);
+        chordUsed.add(name);
+        runAction(mapping.chords[name], true);
+        return;
+      }
+      if (!pressed && chordUsed.has(name)) {
+        chordUsed.delete(name);
+        runAction(mapping.chords?.[name], false);
+        return;
+      }
+      if (pressed && nudgeHeld) {
+        nudgeUsed.add(name);
+        const held = (i) => pad.buttons[i]?.pressed;
+        const dx = (held(15) ? 1 : 0) - (held(14) ? 1 : 0);
+        const dy = (held(13) ? 1 : 0) - (held(12) ? 1 : 0);
+        centerCursorOnHero(dx, dy);
+        return;
+      }
+      if (!pressed && nudgeUsed.has(name)) {
+        nudgeUsed.delete(name);
+        return;
+      }
       const dir = { DUp: 'up', DDown: 'down', DLeft: 'left', DRight: 'right' }[name];
       const key = mapping.dpad?.[dir];
       if (key) sendKey(key, pressed);
@@ -552,10 +766,17 @@ function tick() {
       return;
     }
 
+    if (name === CHORD_MOD) {
+      if (pressed) { chordUsed.delete(CHORD_MOD); return; }
+      if (!chordUsed.has(CHORD_MOD)) { runAction(mapping.buttons[CHORD_MOD], true); runAction(mapping.buttons[CHORD_MOD], false); }
+      chordUsed.delete(CHORD_MOD);
+      return;
+    }
+
     if (backHeld && name === 'Start') { if (pressed) openMenu(); return; }
 
-    if (backHeld && mapping.chords?.[name]) {
-      if (pressed) { chordUsed.add('Back'); chordUsed.add(name); }
+    if (modHeld && mapping.chords?.[name]) {
+      if (pressed) { chordUsed.add(CHORD_MOD); chordUsed.add(name); }
       runAction(mapping.chords[name], pressed);
       if (!pressed) chordUsed.delete(name);
       return;

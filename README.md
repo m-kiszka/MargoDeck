@@ -17,35 +17,37 @@ What the wrapper adds:
 |---|---|
 | Left stick | Move (W A S D) |
 | Right stick | Mouse cursor |
-| A | Left click |
-| RT | Turn-based fight (`Q`) |
+| A / RT | Left click |
 | LT | Right click |
-| B | Escape |
-| X | Quick fight (`F`) |
+| B | Escape / close battle window / close popup window (`Esc` / `Z`) |
+| X | Quick fight / turn-based fight (`F` / `Q`) |
 | Y | Talk to nearest NPC (`R`) |
-| L1 | Battle sets (`Tab`) |
-| R1 | Close battle window (`Z`) |
+| L1 | Battle sets (`Tab`) on a short press; hold as a modifier for the L1 + combinations below |
+| R1 | Hold + D-pad or right stick: move the cursor one tile from the character in that direction (stick: any angle, D-pad: two directions = diagonal) |
 | L3 | Mini map (`E`) |
 | R3 | Center cursor on character |
-| D-pad ↑ ↓ ← → | Inventory (`I`, bind it in game first) · Battle log (`H`) · Skills (`U`) · Chat (`C`) |
+| D-pad ↑ ↓ ← → | Inventory (`I`, bind it in game first) · Skills (`U`) · Battle log (`H`) · Chat (`C`) |
 | View | World map (`M`) |
 | Menu | Quests (`T`) |
 | **View + Menu** | MargoDeck settings menu (fixed) |
 | **Hold View** | Controls cheat sheet |
-| View + B | Close popup window (e.g. login) |
-| View + X | Attack nearest player (`X`) |
-| View + L2 / R2 | Group (`G`) / Invite to group (`V`) |
-| View + R3 | Resize battle log (`B`) |
-| View + L1 / R1 | Zoom − / + |
-| View + L3 | Reset zoom |
+| L1 + A | Jump the cursor to the next field, button or clickable element |
+| L1 + B | Jump the cursor to the previous field, button or clickable element |
+| L1 + X | Attack nearest player (`X`) |
+| L1 + Y | Invite to group (`V`) |
+| L1 + L2 | Group (`G`) |
+| L1 + D-pad ↑ / ↓ | Zoom + / − |
+| L1 + D-pad ← | Resize battle log (`B`) |
+| L1 + D-pad → | Reset zoom |
 
-Hold **View** + **Menu** to open the settings menu. Its **App** section reloads the page, toggles fullscreen and sets the window size (the size is saved; picking one leaves fullscreen). In Steam Deck Gaming Mode the app always fills the screen, so the window size only matters in Desktop Mode or on a PC.
+Hold **View** + **Menu** to open the settings menu. Its **App** section reloads the page, toggles fullscreen, sets the window size (the size is saved; picking one leaves fullscreen) and quits the app. In Steam Deck Gaming Mode the app always fills the screen, so the window size only matters in Desktop Mode or on a PC.
 
 In the same menu you can remap the buttons. Pick a button with the D-pad, press A, choose an action or a keyboard key. Changes are saved immediately. You can also tap the entries on the touchscreen.
+A button can press up to three keys at once: pick the button, then **+ Add another key…** (or **− Remove last key**). The D-pad and the left stick stay single-key.
 Check the current game shortcuts in the Margonem settings and assign them here.
 
 You can also edit `~/.config/MargoDeck/mapping.json` on the Deck (`%APPDATA%\MargoDeck\mapping.json` on Windows).
-The file is created on first launch. It also sets `zoom`, the cursor speed and the stick deadzone.
+The file is created on first launch. It also sets `zoom`, the cursor speed, the stick deadzone and `nudgeTiles` (how far R1 + D-pad / right stick moves the cursor).
 **F11** toggles fullscreen and **F5** reloads the page.
 
 ## Development
@@ -99,7 +101,7 @@ Settings and the button mapping are stored in `%APPDATA%\MargoDeck`.
 Login popups from Google, Facebook and Apple open as child windows inside the app.
 They share the session cookies, so a login done there carries over to the game.
 Gamepad input goes to whichever window has focus. You can also tap the Deck's touchscreen.
-The popup usually closes itself after logging in. Otherwise close it with **View + B** (or Ctrl+Esc).
+The popup usually closes itself after logging in. Otherwise close it with **B** (or Ctrl+Esc).
 Links to any other site open in the system browser.
 
 The app removes `Electron` from its user agent, because Google blocks sign-in from browsers that look embedded.
